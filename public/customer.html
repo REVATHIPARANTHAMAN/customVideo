@@ -39,6 +39,7 @@
         <script type="text/javascript">
             function submitForm() {
               Android.showUser(
+                console.log("Alert");
                   document.getElementById("name"),  
                   document.getElementById("email")
               );
@@ -70,7 +71,7 @@
             <button class="call_button_small" id="screen_sharing_button">
                 <img src="/images/switchCameraScreenSharing.png">
             </button>
-            <button onclick="submitForm()">Click me</button>
+            <button id="submitForm" onclick="submitForm()">Click me</button>
         </div>
     </div>
 
