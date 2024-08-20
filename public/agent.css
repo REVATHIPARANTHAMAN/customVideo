@@ -338,7 +338,7 @@ body {
   padding: 1rem;
   bottom: 40px;
   display: flex;
-  justify-content: space-between;
+  justify-content: space-around;
   align-items: center;
   background: #343434;
   margin-right: 2.5rem;
@@ -469,8 +469,8 @@ body {
   background: rgba(0, 0, 0, 0.2);
   border-radius: 15px;
   backdrop-filter: blur(60px);
-  right: 20px;
-  top: 20px;
+  right: 0rem;
+  top: 4rem;
   display: flex;
   align-items: center;
   justify-content: center;

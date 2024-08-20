@@ -75,6 +75,11 @@ const createPeerConnection = () => {
         remoteUser: "",
         status: "disconnected"
       });
+      try {
+        ui.callNFI("onConferenceEnd");
+      } catch (ex) {
+        console.log(ex);
+      }
     }
     if (peerConection && peerConection.connectionState === "connected") {
       wss.sendConnectionStatus({
@@ -86,6 +91,9 @@ const createPeerConnection = () => {
       try {
         let hangup = document.getElementById("hang_up_button");
         hangup.disabled = false;
+        ui.callNFI("onAccept");
+        ui.callNFI("onConferenceStarted");
+        ui.updateConnectedUser();
       } catch (ex) {
         console.log(ex);
       }
@@ -189,9 +197,13 @@ const acceptCallHandler = (calleePersonalCode) => {
   sendPreOfferAnswer(constants.preOfferAnswer.CALL_ACCEPTED);
 };
 
-const rejectCallHandler = () => {
+const rejectCallHandler = (triggeredAction) => {
   setIncomingCallsAvailable();
-  sendPreOfferAnswer(constants.preOfferAnswer.CALL_REJECTED);
+  if (triggeredAction === "timer") {
+    sendPreOfferAnswer(constants.preOfferAnswer.CALL_NOT_ANSWERED);
+  } else {
+    sendPreOfferAnswer(constants.preOfferAnswer.CALL_REJECTED);
+  }
 };
 
 const callingDialogRejectCallHandler = () => {
@@ -241,6 +253,11 @@ export const handlePreOfferAnswer = (data) => {
   if (preOfferAnswer === constants.preOfferAnswer.CALL_ACCEPTED) {
     createPeerConnection();
     sendWebRTCOffer();
+  }
+
+  if (preOfferAnswer === constants.preOfferAnswer.CALL_NOT_ANSWERED) {
+    setIncomingCallsAvailable();
+    ui.showInfoDialog(preOfferAnswer);
   }
 };
 
@@ -299,6 +316,7 @@ const closePeerConnectionAndResetState = () => {
   if (peerConection) {
     peerConection.close();
     ui.updateStatus("disconnect");
+    ui.callNFI("onConferenceEnd");
     peerConection = null;
     let state = store.getState();
     wss.sendConnectionStatus({

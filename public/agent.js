@@ -3,15 +3,18 @@ import * as socketCon from "./wssAgent.js";
 import * as store from "./store.js"
 import * as ui from "./uiInteract.js"
 import * as recordingUtils from "./recordingUtil.js"
-const socket = io("/");
 webRTCHandler.getLocalPreview();
-socketCon.registerSocketEvents(socket);
 
 const micButton = document.getElementById("mic_button");
 micButton.addEventListener("click", () => {
   const localStream = store.getState().localStream;
   const micEnabled = localStream.getAudioTracks()[0].enabled;
   localStream.getAudioTracks()[0].enabled = !micEnabled;
+  if (localStream.getAudioTracks()[0].enabled) {
+    store.setMute(true);
+  } else {
+    store.setMute(false);
+  }
   ui.updateMicButton(micEnabled);
 });
 
@@ -77,6 +80,7 @@ dropDown.addEventListener("click", () => {
     let cloneItem = dropdownItem.cloneNode(true);
     cloneItem.dataset.deviceid = item.deviceId;
     cloneItem.textContent = item.label;
+    cloneItem.title = item.label;
     cloneItem.onclick = selectDeviceVideo;
     if (selectD && selectD.video && selectD.video.dataset.deviceid === item.deviceId) {
       cloneItem.style.color = "#1e2125";
@@ -92,6 +96,7 @@ dropDown.addEventListener("click", () => {
     let cloneItem = dropdownItem.cloneNode(true);
     cloneItem.dataset.deviceid = item.deviceId;
     cloneItem.textContent = item.label;
+    cloneItem.title = item.label;
     cloneItem.onclick = selectDeviceAudio;
     if (selectD && selectD.audio && selectD.audio.dataset.deviceid === item.deviceId) {
       cloneItem.style.color = "#1e2125";
@@ -144,3 +149,57 @@ function selectDeviceAudio(event) {
 
 const status = document.querySelector("#status");
 status.textContent = "Not Connected";
+
+let socket = null;
+document.querySelector("#status").textContent = "VC Disconnected";
+const connect_vc = document.querySelector("#connect_vc")
+connect_vc.addEventListener("click", () => {
+
+  if (connect_vc.dataset.status === "disconnected") {
+    connect_vc.classList.remove("btn-secondary");
+    connect_vc.classList.add("btn-success");
+    connect_vc.textContent = "Disconnect VC";
+    connect_vc.dataset.status = "connected";
+    document.querySelector("#status").textContent = "VC Connected";
+    socket = io("/");
+    socketCon.registerSocketEvents(socket);
+    session.start();
+  } else {
+    connect_vc.classList.add("btn-secondary");
+    connect_vc.classList.remove("btn-success");
+    connect_vc.textContent = "Connect VC";
+    connect_vc.dataset.status = "disconnected";
+    document.querySelector("#status").textContent = "VC Disconnected";
+    socket.close();
+    session.dispose();
+  }
+});
+
+
+// timeout 
+export let session = new IdleSessionTimeout(10 * 60 * 1000);
+// let session = new IdleSessionTimeout(500);
+
+session.onTimeOut = () => {
+
+  connect_vc.click();
+  // here you can call your server to log out the user
+  let ringtone = new Audio("./audio/user_disconnect.mp3");
+  Swal.fire({
+    title: "Session Expired, Please Login Again",
+    showDenyButton: false,
+    showCancelButton: false,
+    confirmButtonText: "Refresh",
+    denyButtonText: `Cancel`,
+    allowOutsideClick: false,
+    didOpen: () => {
+      ringtone.play();
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      window.location.href = "/agent";
+    }
+    ringtone.pause();
+  });
+
+};

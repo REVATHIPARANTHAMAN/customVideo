@@ -1,5 +1,10 @@
 const express = require("express");
 const http = require("http");
+const logger = require('./public/utils/logger.cjs');
+const ftpClient = require('./public/utils/ftputil.cjs');
+const constants = require('./public/utils/constant.json');
+const fsProm = require("fs/promises");
+const fs = require("fs");
 
 const PORT = process.env.PORT || 3000;
 
@@ -25,6 +30,72 @@ app.get("/agent", (req, res) => {
   res.sendFile(__dirname + "/public/agent.html");
 });
 
+app.get("/disconnect", (req, res) => {
+  io.disconnectSockets();
+  res.send({ status: "disconnected", msg: "all users were disconnected" });
+});
+
+app.post("/upload-file", async (req, res) => {
+  let applicationId = req.header("fileName");
+  let fileName = applicationId + constants.fielExtension;
+  logger().info("upload-file request fileName--" + fileName);
+  let data = []; let directoryPath = "./recordings";
+  req.on('data', chunk => {
+    data.push(chunk);
+  });
+  req.on('end', () => {
+    if (!fs.existsSync(directoryPath)) {
+      logger().info("mkdir directory");
+      fsProm.mkdir(directoryPath).then(() => {
+        const response = saveRecordings(fileName, data);
+        res.statusCode = response.code;
+        logger().info("file save status " + response.status);
+        res.send({ "status": response.status });
+      }).catch((result) => {
+        console.log(result);
+        res.statusCode = 500;
+        logger().info("upload-file failed " + result);
+        res.send({ "status": "failed" });
+      });
+    } else {
+      saveRecordings(fileName, data);
+    }
+  });
+});
+
+const saveRecordings = (fileName, data) => {
+  fsProm.writeFile("./recordings/" + fileName, data).then((result) => {
+    console.log("Success");
+    logger().info(fileName + " file saved successfully ./recordings/" + fileName);
+    uploadRecordVideo(fileName);
+    return { "status": "success", code: 200 };
+  }).catch((result) => {
+    console.log("Failed" + result);
+    logger().info(fileName + " file save failed ./recordings/" + fileName);
+    return { "status": "failed", code: 500 };
+  });
+}
+
+const uploadRecordVideo = (applicationId) => {
+
+  logger().info("upload window loaded..");
+  let fileName = applicationId;
+  let downloadPath = constants.downloadPath;
+  let dirPath = process.env.USERPROFILE.replace(/\\\\/g, '\/');
+  fs.readFile("." + downloadPath + fileName, '', (err, data) => {
+    if (err) {
+      logger().error("Exception on reading file " + err);
+      return;
+    }
+    ftpClient.ftpUpload(data, fileName);
+    logger().info("video file uploaded successfully..");
+    //ftpClient.ftpUpload(data,fileName); to upload
+    //ftpClient.ftpDownload(fileName); to download
+    // ftpClient.ftpdir(); to get list of directories 
+  });
+}
+
+
 app.get("/connected_users", (req, res) => {
   let dto = [];
   connectedUser.forEach((connected_user) => {
@@ -43,6 +114,16 @@ app.get("/connected_users", (req, res) => {
       status: connected_user.connection_status,
       connected_user: connected_user.connected_user,
       connection_type: connected_user.connection_type
+    }
+    if (data.connection_type === "agent") {
+
+      let n = Object.assign({}, data);
+      n.first_name = "User";
+      n.connection_type = "test_user";
+      n.id = "test_" + data.id;
+      n.login_name = "test_" + data.login_name;
+      n.status = 0;
+      dto.push(n);
     }
     dto.push(data);
   });

@@ -2,6 +2,7 @@ import * as wss from "./wssAgent.js";
 import * as constants from "./constants.js";
 import * as store from "./store.js";
 import * as ui from "./uiInteract.js"
+import * as agent from "./agent.js";
 
 let connectedUserDetails;
 let peerConection;
@@ -95,6 +96,22 @@ const createPeerConnection = () => {
         remoteUser: "",
         status: "disconnected"
       });
+
+      try {
+        let hangup = document.getElementById("hang_up_button");
+        hangup.style.display = "none";
+        hangup.disabled = false;
+        let recordButton = document.getElementById("start_recording_button");
+        recordButton.style.display = "none";
+        const connectBtn = document.querySelector("#connect_vc");
+        connectBtn.disabled = false;
+        connectBtn.style.cursor = "pointer";
+        if (agent.session) {
+          agent.session.start();
+        }
+      } catch (ex) {
+        console.log(ex);
+      }
     }
     if (peerConection && peerConection.connectionState === "connected") {
       wss.sendConnectionStatus({
@@ -105,7 +122,16 @@ const createPeerConnection = () => {
       });
       try {
         let hangup = document.getElementById("hang_up_button");
+        hangup.style.display = "";
         hangup.disabled = false;
+        let recordButton = document.getElementById("start_recording_button");
+        recordButton.style.display = "";
+        const connectBtn = document.querySelector("#connect_vc");
+        connectBtn.disabled = true;
+        connectBtn.style.cursor = "not-allowed";
+        if (agent.session) {
+          agent.session.dispose();
+        }
       } catch (ex) {
         console.log(ex);
       }
@@ -124,6 +150,11 @@ const createPeerConnection = () => {
   ) {
     const localStream = store.getState().localStream;
 
+    if (store.getMute()) {
+      localStream.getAudioTracks()[0].enabled = true;
+    } else {
+      localStream.getAudioTracks()[0].enabled = false;
+    }
     for (const track of localStream.getTracks()) {
       let sender = peerConection.addTrack(track, localStream);
       if (track.kind === "video") {
@@ -214,9 +245,13 @@ const acceptCallHandler = (calleePersonalCode) => {
   sendPreOfferAnswer(constants.preOfferAnswer.CALL_ACCEPTED);
 };
 
-const rejectCallHandler = () => {
+const rejectCallHandler = (triggeredAction) => {
   setIncomingCallsAvailable();
-  sendPreOfferAnswer(constants.preOfferAnswer.CALL_REJECTED);
+  if (triggeredAction === "timer") {
+    sendPreOfferAnswer(constants.preOfferAnswer.CALL_NOT_ANSWERED);
+  } else {
+    sendPreOfferAnswer(constants.preOfferAnswer.CALL_REJECTED);
+  }
 };
 
 const callingDialogRejectCallHandler = () => {
@@ -332,6 +367,19 @@ const closePeerConnectionAndResetState = () => {
       remoteUser: "",
       status: "disconnected"
     });
+    try {
+      let hangup = document.getElementById("hang_up_button");
+      hangup.style.display = "none";
+      hangup.disabled = false;
+      let recordButton = document.getElementById("start_recording_button");
+      recordButton.style.display = "none";
+      const connectBtn = document.querySelector("#connect_vc");
+      connectBtn.disabled = false;
+      connectBtn.style.cursor = "pointer";
+      agent.session.start();
+    } catch (ex) {
+      console.log(ex);
+    }
   }
 
   // active mic and camera

@@ -52,7 +52,6 @@ cameraButton.addEventListener("click", () => {
 const hangUpButton = document.getElementById("hang_up_button");
 hangUpButton.addEventListener("click", () => {
   webRTCHandler.handleHangUp();
-  Android.callCallBack("DisconnectedByUser");
 });
 
 // switchCamera

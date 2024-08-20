@@ -1,5 +1,5 @@
-
 import * as constants from "./constants.js";
+import * as store from "./store.js";
 
 export const updateLocalVideo = (stream) => {
   const localVideo = document.getElementById("local_video");
@@ -27,6 +27,7 @@ const showElement = (element) => {
   }
 };
 
+const connected_user = document.getElementById("connected_user");
 
 export const updatePersonalCode = (personalCode) => {
   const personal = document.getElementById(
@@ -36,8 +37,6 @@ export const updatePersonalCode = (personalCode) => {
     personal.textContent = personalCode;
   }
   console.log(personalCode);
-
-
 };
 
 export const showCallingDialog = (rejectCallHandler) => {
@@ -56,30 +55,32 @@ export const showInfoDialog = (preOfferAnswer) => {
   let infoDialog = null;
 
   if (preOfferAnswer === constants.preOfferAnswer.CALL_REJECTED) {
-    //   infoDialog = elements.getInfoDialog(
-    //     "Call rejected",
-    //     "Callee rejected your call"
-    //   );
-    alert("call rejected");
+    callNFI("onReject");
   }
 
   if (preOfferAnswer === constants.preOfferAnswer.CALLEE_NOT_FOUND) {
-    //   infoDialog = elements.getInfoDialog(
-    //     "Callee not found",
-    //     "Please check personal code"
-    //   );
-    alert("callee not found");
+    callNFI("CallIdNotFound");
   }
 
   if (preOfferAnswer === constants.preOfferAnswer.CALL_UNAVAILABLE) {
-    //   infoDialog = elements.getInfoDialog(
-    //     "Call is not possible",
-    //     "Probably callee is busy. Please try againg later"
-    //   );
-    alert("Call is not possible");
+    callNFI("AgentBusy");
+  }
+
+  if (preOfferAnswer === constants.preOfferAnswer.CALL_NOT_ANSWERED) {
+    callNFI("CallNotAnswered");
   }
 };
 
+export const callNFI = (msg) => {
+
+  console.log(msg);
+  try {
+    Android && Android.callCallBack(msg);
+  } catch (ex) {
+    console.log("NFI Android is not defined");
+  }
+
+}
 export const showIncomingCallDialog = (
   callType,
   acceptCallHandler,
@@ -87,19 +88,25 @@ export const showIncomingCallDialog = (
 ) => {
   const callTypeInfo =
     callType === constants.callType.CHAT_PERSONAL_CODE ? "Chat" : "Video";
-
+  let ringtone = new Audio("./audio/cell-phone-ringing.mp3");
+  ringtone.loop = true;
   Swal.fire({
     title: "Incoming Call!!!",
     showDenyButton: false,
     showCancelButton: true,
     confirmButtonText: "Accept",
-    denyButtonText: `Cancel`
+    denyButtonText: `Cancel`,
+    timer: 15000,
+    didOpen: () => {
+      ringtone.play();
+    }
   }).then((result) => {
     if (result.isConfirmed) {
       acceptCallHandler();
     } else if (result.isDismissed) {
-      rejectCallHandler();
+      rejectCallHandler(result.dismiss);
     }
+    ringtone.pause();
   });
 };
 
@@ -175,4 +182,13 @@ status.textContent = "Not Connected";
 
 export const updateStatus = (statusContent) => {
   status.textContent = statusContent;
+  if (connected_user) {
+    connected_user.textContent = "";
+  }
 };
+
+export const updateConnectedUser = () => {
+  if (connected_user) {
+    connected_user.textContent = store.getRemoteUser();
+  }
+}
