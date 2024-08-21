@@ -75,7 +75,8 @@ export const callNFI = (msg) => {
 
   console.log(msg);
   try {
-    Android && Android.callCallBack(msg);
+   // Android && Android.callCallBack(msg);
+    Delegate&&Delegate.callCallBack(msg);
   } catch (ex) {
     console.log("NFI Android is not defined");
   }
