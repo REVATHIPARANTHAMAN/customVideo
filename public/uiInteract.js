@@ -76,7 +76,7 @@ export const callNFI = (msg) => {
   console.log(msg);
   try {
    // Android && Android.callCallBack(msg);
-    Delegate&&Delegate.callCallBack(msg);
+    //Delegate&&Delegate.callCallBack(msg);
     var messgeToPost = {'TriggerID':'fromNodeVC trigger'};
 window.webkit.messageHandlers.fromNodeVC.postMessage(messgeToPost);
   } catch (ex) {
