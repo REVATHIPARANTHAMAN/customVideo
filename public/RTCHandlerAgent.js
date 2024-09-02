@@ -3,6 +3,7 @@ import * as constants from "./constants.js";
 import * as store from "./store.js";
 import * as ui from "./uiInteract.js"
 import * as agent from "./agent.js";
+import * as recordingUtils from "./recordingUtil.js"
 
 let connectedUserDetails;
 let peerConection;
@@ -101,14 +102,18 @@ const createPeerConnection = () => {
         let hangup = document.getElementById("hang_up_button");
         hangup.style.display = "none";
         hangup.disabled = false;
-        let recordButton = document.getElementById("start_recording_button");
-        recordButton.style.display = "none";
         const connectBtn = document.querySelector("#connect_vc");
         connectBtn.disabled = false;
         connectBtn.style.cursor = "pointer";
         if (agent.session) {
           agent.session.start();
         }
+        if (window.location.host === "testing") {
+          recordingUtils.stopRecording();
+          ui.resetRecordingButtons();
+        }
+
+        window.parent.postMessage({ event: "Waiting For Call" }, '*');
       } catch (ex) {
         console.log(ex);
       }
@@ -124,14 +129,18 @@ const createPeerConnection = () => {
         let hangup = document.getElementById("hang_up_button");
         hangup.style.display = "";
         hangup.disabled = false;
-        let recordButton = document.getElementById("start_recording_button");
-        recordButton.style.display = "";
         const connectBtn = document.querySelector("#connect_vc");
         connectBtn.disabled = true;
         connectBtn.style.cursor = "not-allowed";
         if (agent.session) {
           agent.session.dispose();
         }
+        if (window.location.host === "testing") {
+          recordingUtils.startRecording();
+          ui.showRecordingPanel();
+        }
+
+        window.parent.postMessage({ event: "In Call" }, '*');
       } catch (ex) {
         console.log(ex);
       }
@@ -371,12 +380,14 @@ const closePeerConnectionAndResetState = () => {
       let hangup = document.getElementById("hang_up_button");
       hangup.style.display = "none";
       hangup.disabled = false;
-      let recordButton = document.getElementById("start_recording_button");
-      recordButton.style.display = "none";
       const connectBtn = document.querySelector("#connect_vc");
       connectBtn.disabled = false;
       connectBtn.style.cursor = "pointer";
       agent.session.start();
+      if (window.location.host === "testing") {
+        recordingUtils.stopRecording();
+        ui.resetRecordingButtons();
+      }
     } catch (ex) {
       console.log(ex);
     }
